@@ -7,7 +7,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 
 app = Flask(__name__)
 app.secret_key = "SECRETSECRETSECRET"
-
+EVENTBRITE_TOKEN = os.environ['EVENTBRITE_TOKEN']
 
 @app.route("/")
 def homepage():
@@ -46,8 +46,19 @@ def find_afterparties():
         # - (Make sure to save the JSON data from the response to the data
         #   variable so that it can display on the page as well.)
 
-        data = {'This': ['Some', 'mock', 'JSON']}
-        events = []
+        payload = {
+            'q': query,
+            'location.address': location,
+            'location.within': distance,
+            'sort_by': sort,
+            'token': EVENTBRITE_TOKEN
+        }
+
+        url = 'https://www.eventbriteapi.com/v3/events/search'
+        response = requests.get(url, params = payload)
+
+        data = response.json()
+        events = data['events']
 
         return render_template("afterparties.html",
                                data=pformat(data),
