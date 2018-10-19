@@ -7,7 +7,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 
 app = Flask(__name__)
 app.secret_key = "SECRETSECRETSECRET"
-
+EVENTBRITE_TOKEN = os.environ['EVENTBRITE_TOKEN']
 
 @app.route("/")
 def homepage():
@@ -39,15 +39,25 @@ def find_afterparties():
         # The Eventbrite API requires the distance value to have a measurement
         distance = distance + measurement
 
-        # TODO: Look for afterparties!
 
         # - Make a request to the Eventbrite API to search for events that match
         #   the form data.
         # - (Make sure to save the JSON data from the response to the data
         #   variable so that it can display on the page as well.)
 
-        data = {'This': ['Some', 'mock', 'JSON']}
-        events = []
+        payload = {
+            'q': query,
+            'location.address': location,
+            'location.within': distance,
+            'sort_by': sort,
+            'token': EVENTBRITE_TOKEN
+        }
+        url = 'https://www.eventbriteapi.com/v3/events/search'
+        response = requests.get(url, params = payload)
+
+        data = response.json()
+        events = data['events']
+
 
         return render_template("afterparties.html",
                                data=pformat(data),
@@ -79,19 +89,32 @@ def create_eventbrite_event():
     timezone = request.form.get('timezone')
     currency = request.form.get('currency')
 
-    # TODO: Create my event!
 
     # - Make a request to the Eventbrite API to create a new event using the
     # form data and save the result in a variable called `json`.
     # - Flash add the created event's URL as a link to the success flash message
 
+    data = {
+        'event.name.html': name,
+        'event.start.utc':start_time,
+        'event.start.timezone': timezone,
+        'event.end.utc': end_time,
+        'event.end.timezone': timezone,
+        'event.currency': currency
+    }
+
+    headers = {'Authorization': 'Bearer ' + EVENTBRITE_TOKEN}
+
+    url = 'https://www.eventbriteapi.com/v3/organizations/278013531755/events/'
+    response = requests.post(url, data=data, headers=headers )
+
     ##### UNCOMMENT THIS once you make your request! #####
-    # if response.ok:
-    #     flash("Your event was created!")
-    #     return redirect("/")
-    # else:
-    #     flash('OAuth failed: {}'.format(data['error_description']))
-    #     return redirect("/create-event")
+    if response.ok:
+        flash("Your event was created!")
+        return redirect("/")
+    else:
+        flash('OAuth failed: {}'.format(data['error_description']))
+        return redirect("/create-event")
 
     return redirect("/")
 
